@@ -61,7 +61,7 @@ sys_sleep(void)
 {
   int n;
   uint ticks0;
-  
+
   if(argint(0, &n) < 0)
     return -1;
   acquire(&tickslock);
@@ -83,7 +83,7 @@ int
 sys_uptime(void)
 {
   uint xticks;
-  
+
   acquire(&tickslock);
   xticks = ticks;
   release(&tickslock);
@@ -101,4 +101,49 @@ sys_halt(void)
   for( ; *p; p++)
     outw(0xB004, 0x2000);
   return 0;
+}
+
+int
+sys_clone(void)
+{
+  int func;
+  int arg;
+  int stack;
+
+  if(argint(0, &func) < 0)
+    return -1;
+  if(argint(1, &arg) < 0)
+    return -1;
+  if(argint(2, &stack) < 0)
+    return -1;
+
+  return clone(func, arg, stack);
+}
+
+int
+sys_join(void)
+{
+  int pid;
+  int stack;
+  int retval;
+
+  if(argint(0, &pid) < 0)
+    return -1;
+  if(argint(1, &stack) < 0)
+    return -1;
+  if(argint(2, &retval) < 0)
+    return -1;
+
+  return join(pid, stack, retval);
+}
+
+int
+sys_texit(void)
+{
+  int retval;
+
+  if(argint(0, &retval) < 0)
+    return -1;
+
+  return texit(retval);
 }

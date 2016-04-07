@@ -21,3 +21,6 @@
 #define SYS_mkdir  20
 #define SYS_close  21
 #define SYS_halt   22
+#define SYS_clone  23
+#define SYS_join   24
+#define SYS_texit  25
