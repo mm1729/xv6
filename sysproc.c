@@ -117,7 +117,7 @@ sys_clone(void)
   if(argint(2, &stack) < 0)
     return -1;
 
-  return clone(func, arg, stack);
+  return clone((void* (*) (void*))func, (void *)arg, (void *)stack);
 }
 
 int
@@ -134,7 +134,7 @@ sys_join(void)
   if(argint(2, &retval) < 0)
     return -1;
 
-  return join(pid, stack, retval);
+  return join(pid, (void **)stack, (void **)retval);
 }
 
 int
@@ -145,5 +145,6 @@ sys_texit(void)
   if(argint(0, &retval) < 0)
     return -1;
 
-  return texit(retval);
+  texit((void *)retval);
+  return 0;
 }

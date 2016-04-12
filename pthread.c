@@ -15,15 +15,22 @@ int pthread_create(pthread_t* thread, const pthread_attr_t* attr,
 
     thread->stack = stack;
     int tid = clone(start_routine, arg, stack);
-    thread->tid = tid;
+    thread->pid = tid;
     return tid;
   }
 
 int pthread_join(pthread_t thread, void** retval)
 {
-  return join(thread->tid, thread->stack, retval);
+  char* stackPtr = 0;
+  int status = join(thread.pid, (void**)&stackPtr, retval);
+  if(status == -1)  // error happened
+    *retval = 0; // store null address in retval
+  else
+    if(stackPtr) free(stackPtr);
+
+  return status;
 }
-int pthread_exit(void* retval)
+void pthread_exit(void* retval)
 {
-  return texit(retval);
+  texit(retval);
 }

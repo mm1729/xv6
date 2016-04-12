@@ -6,6 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "pthread.h"
 
 struct {
   struct spinlock lock;
@@ -466,14 +467,93 @@ procdump(void)
 
 int clone(void*(*func) (void*), void* arg, void* stack)
 {
-  return 0;
+
+  struct proc *t;
+  int pid;
+
+  //allocated process element
+  if((t=allocproc()) ==0){
+    return -1;
+  }
+
+  //share vm
+  t->pgdir = proc->pgdir;
+  //set the parent
+  t->parent = proc;
+  t->family = proc->family;
+
+  //set the vm size
+  t->sz = proc->sz;
+  //copy the trapframe
+  *t->tf = *proc->tf;
+
+  t->stack = stack; // copy stack
+  //reorient the stack
+  t->tf->esp = (uint)(stack+STACK_SIZE);
+  t->tf->ebp = t->tf->esp;
+  //push args
+  t->tf->esp-=4;
+  *((uint*)(t->tf->esp))=(uint)arg;
+  t->tf->esp-=4;
+  *((uint*)(t->tf->esp))=0xFFFFFFFF;
+  *((uint*)(t->tf->eip)) = (uint)func;
+
+  acquire(&ptable.lock);
+  t->state = RUNNABLE;
+  release(&ptable.lock);
+
+  pid = t->pid;
+  return pid;
 }
 
 int join(int pid, void** stack, void**retval)
 {
-  return 0;
+  struct proc *p;
+  int havekid;
+
+  if(pid <= 0 || proc->pid == pid) // invalid pid
+    return -1;
+
+  acquire(&ptable.lock);
+  for(;;) {
+    havekid = 0;
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+      if(p->parent != proc)
+        continue;
+      if(p->pid != pid) // not the requested thread
+        continue;
+      havekid = 1;
+      if(p->state == ZOMBIE) {
+        // Found one.
+        *stack = (void *)p->stack;
+        *retval = (void *)p->retval;
+        p->stack = 0;
+        p->retval = 0;
+        kfree(p->kstack);
+        p->kstack = 0;
+        p->pgdir = 0; // just make pointer NULL
+        p->state = UNUSED;
+        p->pid = 0;
+        p->parent = 0;
+        p->name[0] = 0;
+        p->killed = 0;
+        release(&ptable.lock);
+        return 0;
+      }
+    }
+
+    // thread requested doesn't exist
+    if(!havekid || proc->killed) {
+      release(&ptable.lock);
+      return -1;
+    }
+
+    // Waiting for children
+    sleep(proc, &ptable.lock);
+  }
 }
 void texit(void* retval)
 {
-  return;
+  proc->retval = retval;
+  exit();
 }

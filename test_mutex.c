@@ -21,7 +21,7 @@ void *thread(void *arg)
 
 	for (i=0; i<TARGET_COUNT_PER_THREAD; i++) {
 		pthread_mutex_lock(&mutex);
-		
+
 		counter = g_counter;
 		sleep(0);
 		counter++;
@@ -76,7 +76,7 @@ int main(int argc, char **argv)
 		pthread_create(&threads[i], 0, thread, args[i]);
 		printf(1, "main: created thread with pid %d\n", threads[i].pid);
 	}
-	
+
 	// Wait for all children
 	for (i=0; i<NUM_THREADS; i++) {
 		void *retval;
