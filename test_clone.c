@@ -12,7 +12,7 @@ void *thread(void *arg)
 	int i;
 	int counter;
 
-	sleep(10);
+	//sleep(10);
 	printf(1, "thread %d: started...\n", *(int*)arg);
 
 	for (i=0; i<TARGET_COUNT_PER_THREAD; i++) {
@@ -59,10 +59,12 @@ int main(int argc, char **argv)
 
 	// Start all children
 	for (i=0; i<NUM_THREADS; i++) {
-		pids[i] = clone(thread, args[i], stacks[i]);
+		//printf(1,"lolz\n");
+		printf(1, "%x\n", thread);
+		pids[i] = clone(&thread, args[i], stacks[i]);
 		printf(1, "main: created thread with pid %d\n", pids[i]);
 	}
-	
+
 	// Wait for all children
 	for (i=0; i<NUM_THREADS; i++) {
 		void *joinstack;

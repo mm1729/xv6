@@ -469,7 +469,7 @@ int clone(void*(*func) (void*), void* arg, void* stack)
 {
 
   struct proc *t;
-  int pid;
+  int pid = -1;
 
   //allocated process element
   if((t=allocproc()) ==0){
@@ -495,8 +495,12 @@ int clone(void*(*func) (void*), void* arg, void* stack)
   t->tf->esp-=4;
   *((uint*)(t->tf->esp))=(uint)arg;
   t->tf->esp-=4;
-  *((uint*)(t->tf->esp))=0xFFFFFFFF;
-  *((uint*)(t->tf->eip)) = (uint)func;
+  *((uint*)(t->tf->esp))= 0xFFFFFFFF;
+//  *((uint*)(t->tf->eip)) = (uint)func;
+  t->tf->eip = (uint)func;
+
+  char alphaName[2] = {(char) (t->pid % 26 + 65), '\0'};
+  safestrcpy(t->name, alphaName, sizeof(alphaName));
 
   acquire(&ptable.lock);
   t->state = RUNNABLE;
