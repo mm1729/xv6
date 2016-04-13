@@ -498,7 +498,7 @@ int clone(void*(*func) (void*), void* arg, void* stack)
   //set the parent
   t->parent = proc;
   if(proc->family==0){
-    proc->family=proc->tid;
+    proc->family=proc->pid;
   }
   t->family = proc->family;
 
