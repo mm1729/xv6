@@ -49,6 +49,29 @@ struct context {
   uint eip;
 };
 
+
+
+
+
+
+// Mutual exclusion lock.
+struct _spinlock {
+  uint locked;       // Is the lock held?
+
+  // For debugging:
+  char *name;        // Name of lock.
+  struct cpu *cpu;   // The cpu holding the lock.
+  uint pcs[10];      // The call stack (an array of program counters)// that locked the lock.
+};
+
+typedef struct{
+
+  struct _spinlock lock;
+  int valid;
+  int status;
+}mutex_t;
+
+
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 // Per-process state
@@ -67,6 +90,7 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
   int family;
+  mutex_t mutex_arr[32];
   void* retval;
   void* stack;
 };
