@@ -577,3 +577,24 @@ void texit(void* retval)
   proc->retval = retval;
   exit();
 }
+
+
+int
+mutex_init(void){
+  return 0;
+}
+
+int
+mutex_lock(int mutid){
+  return 0;
+}
+
+int
+mutex_destroy(int mutid){
+  return 0;
+}
+
+int
+mutex_unlock(int mutid){
+  return 0;
+}

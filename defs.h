@@ -121,6 +121,15 @@ void            yield(void);
 int             clone(void*(*func) (void*), void* arg, void* stack);
 int             join(int pid, void** stack, void**retval);
 void            texit(void* retval);
+int             mutex_init(void);
+int             mutex_lock(int mutid);
+int             mutex_destroy(int mutid);
+int             mutex_unlock(int mutid);
+
+
+
+
+
 
 // swtch.S
 void            swtch(struct context**, struct context*);
