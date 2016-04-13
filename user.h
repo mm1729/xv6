@@ -27,6 +27,10 @@ int halt(void);
 int clone(void*(*) (void*), void*, void*);
 int join(int, void**, void**);
 void texit(void*);
+int mutex_init(void);
+int mutex_lock(int);
+int mutex_destroy(int);
+int mutex_unlock(int);
 
 // ulib.c
 int stat(char*, struct stat*);
