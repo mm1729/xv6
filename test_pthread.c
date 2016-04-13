@@ -55,7 +55,7 @@ int main(int argc, char **argv)
 		pthread_create(&threads[i], 0, thread, args[i]);
 		printf(1, "main: created thread with pid %d\n", threads[i].pid);
 	}
-	
+
 	// Wait for all children
 	for (i=0; i<NUM_THREADS; i++) {
 		void *retval;

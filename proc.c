@@ -320,10 +320,12 @@ sched(void)
 void
 yield(void)
 {
+  //cprintf("YIELD BEFORE: %s\n", proc->name);
   acquire(&ptable.lock);  //DOC: yieldlock
   proc->state = RUNNABLE;
   sched();
   release(&ptable.lock);
+  //cprintf("YIELD AFTER: %s\n", proc->name);
 }
 
 // A fork child's very first scheduling by scheduler()
@@ -467,46 +469,56 @@ procdump(void)
 
 int clone(void*(*func) (void*), void* arg, void* stack)
 {
+  //procdump();
 
   struct proc *t;
-  int pid = -1;
+  int pid, i;
 
   //allocated process element
-  if((t=allocproc()) ==0){
+  if((t = allocproc()) == 0)
     return -1;
-  }
 
   //share vm
   t->pgdir = proc->pgdir;
+  /*if((t->pgdir = copyuvm(proc->pgdir, proc->sz)) == 0){
+    kfree(t->kstack);
+    t->kstack = 0;
+    t->state = UNUSED;
+    return -1;
+  }*/
+  t->sz = proc->sz;
+  *t->tf = *proc->tf;
+
+  // Increment file reference count
+  for(i = 0; i < NOFILE; i++)
+    if(proc->ofile[i])
+      t->ofile[i] = filedup(proc->ofile[i]);
+  t->cwd = idup(proc->cwd);
+
   //set the parent
   t->parent = proc;
   t->family = proc->family;
 
-  //set the vm size
-  t->sz = proc->sz;
-  //copy the trapframe
-  *t->tf = *proc->tf;
-
   t->stack = stack; // copy stack
-  //reorient the stack
+  //make the stack
   t->tf->esp = (uint)(stack+STACK_SIZE);
   t->tf->ebp = t->tf->esp;
-  //push args
-  t->tf->esp-=4;
-  *((uint*)(t->tf->esp))=(uint)arg;
-  t->tf->esp-=4;
-  *((uint*)(t->tf->esp))= 0xFFFFFFFF;
-//  *((uint*)(t->tf->eip)) = (uint)func;
+  t->tf->esp -= sizeof(uint);
+  *((uint*)(t->tf->esp)) = (uint)arg;
+  t->tf->esp -= sizeof(uint);
+  *((uint*)(t->tf->esp)) = 0xFFFFFFFF;
   t->tf->eip = (uint)func;
+  pid = t->pid;
 
   char alphaName[2] = {(char) (t->pid % 26 + 65), '\0'};
   safestrcpy(t->name, alphaName, sizeof(alphaName));
 
   acquire(&ptable.lock);
   t->state = RUNNABLE;
+  //t->state = SLEEPING;
   release(&ptable.lock);
 
-  pid = t->pid;
+
   return pid;
 }
 
@@ -558,6 +570,7 @@ int join(int pid, void** stack, void**retval)
 }
 void texit(void* retval)
 {
+  //panic(proc->name);
   proc->retval = retval;
   exit();
 }
