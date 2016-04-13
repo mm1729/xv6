@@ -1,5 +1,6 @@
 // Segments in proc->gdt.
 #define NSEGS     7
+#define NUM_MUTEX 32
 
 // Per-CPU state
 struct cpu {
@@ -71,6 +72,13 @@ typedef struct{
   int status;
 }mutex_t;
 
+typedef  struct{
+  mutex_t mutex_arr[32];
+  struct _spinlock lock;
+
+}mutex_table;
+
+
 
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
@@ -90,7 +98,7 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
   int family;
-  mutex_t mutex_arr[32];
+  mutex_table mt;
   void* retval;
   void* stack;
 };
