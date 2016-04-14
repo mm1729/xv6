@@ -605,6 +605,8 @@ mutex_init(void){
   for(;i<NUM_MUTEX; i++){
     if(!proc->mt.mutex_arr[i].valid){
       proc->mt.mutex_arr[i].valid = 1;
+      proc->mt.mutex_arr[i].status =0;
+      proc->mt.mutex_arr[i].holder = -1;
       release(&(proc->mt.lock));
       return i;
     }
@@ -637,12 +639,13 @@ mutex_lock(int mutid){
 int
 mutex_destroy(int mutid){
   acquire(&(proc->mt.lock));
-  if(mutid<0 || mutid>=NUM_MUTEX || proc->mt.mutex_arr[mutid].status){
+  if(mutid<0 || mutid>=NUM_MUTEX || proc->mt.mutex_arr[mutid].status || !proc->mt.mutex_arr[mutid].valid){
     release(&(proc->mt.lock));
     return -1;
   }
-
+  proc->mt.mutex_arr[mutid].status =0;
   proc->mt.mutex_arr[mutid].valid = 0;
+  proc->mt.mutex_arr[mutid].holder= -1;
   release(&(proc->mt.lock));
 
   return 0;
@@ -653,7 +656,7 @@ mutex_unlock(int mutid){
 
   acquire(&(proc->mt.lock));
   //if mutex is valid and this thread is holding it and the mutex is actually locked
-  if(proc->mt.mutex_arr[mutid].valid && proc->mt.mutex_arr[mutid].holder == proc->pid&&proc->mt.mutex_arr[mutid].status ==1){
+  if(proc->mt.mutex_arr[mutid].valid && proc->mt.mutex_arr[mutid].holder == proc->pid&&proc->mt.mutex_arr[mutid].status){
     //release
     proc->mt.mutex_arr[mutid].status =0;
     proc->mt.mutex_arr[mutid].holder = -1;

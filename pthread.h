@@ -32,8 +32,10 @@ void pthread_exit(void* retval);
   pthread mutex struct
 */
 typedef struct pthread_mutex_t_ {
+  int mutid;
 
-} pthread_mutex_t;
+
+}pthread_mutex_t;
 
 /*
 

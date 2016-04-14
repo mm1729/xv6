@@ -34,3 +34,30 @@ void pthread_exit(void* retval)
 {
   texit(retval);
 }
+
+int
+pthread_mutex_init(pthread_mutex_t* mutex, const pthread_mutexattr_t* attr){
+    int mutid = mutex_init();
+    printf(1,"%d",mutid);
+    if((mutex->mutid = mutid)>=0){
+      return 0;
+    }
+    else{
+      return -1;
+    }
+}
+
+int
+pthread_mutex_destroy(pthread_mutex_t* mutex){
+  return mutex_destroy(mutex->mutid);
+}
+
+int
+pthread_mutex_lock(pthread_mutex_t* mutex){
+    return mutex_lock(mutex->mutid);
+}
+
+int
+pthread_mutex_unlock(pthread_mutex_t* mutex){
+    return mutex_unlock(mutex->mutid);
+}
