@@ -3,7 +3,7 @@
 // Define all functions and types for pthreads here.
 // This can be included in both kernel and user code.
 
-#define STACK_SIZE 10000
+#define STACK_SIZE 4096
 
 
 /*

@@ -189,6 +189,7 @@ fork(void)
 void
 exit(void)
 {
+
   struct proc *p;
   int fd;
 
@@ -226,6 +227,8 @@ exit(void)
   proc->state = ZOMBIE;
   sched();
   panic("zombie exit");
+
+
 }
 
 // Wait for a child process to exit and return its pid.
@@ -486,7 +489,6 @@ procdump(void)
 int clone(void*(*func) (void*), void* arg, void* stack)
 {
   //procdump();
-
   struct proc *t;
   int pid, i;
 
@@ -589,7 +591,7 @@ int join(int pid, void** stack, void**retval)
 }
 void texit(void* retval)
 {
-  //panic(proc->name);
+
   proc->retval = retval;
   exit();
 }
@@ -613,7 +615,23 @@ mutex_init(void){
 
 int
 mutex_lock(int mutid){
-  return 0;
+    acquire(&(proc->mt.lock));
+    if(proc->mt.mutex_arr[mutid].valid){
+      release(&(proc->mt.lock));
+      while(proc->mt.mutex_arr[mutid].status){
+        sleep(proc,&proc->mt.mutex_arr[mutid].lock);
+      }
+      acquire(&(proc->mt.lock));
+      proc->mt.mutex_arr[mutid].status =1;
+      proc->mt.mutex_arr[mutid].holder = proc->pid;
+      release(&(proc->mt.lock));
+      return 0;
+    }
+    else{
+      release(&(proc->mt.lock));
+      return -1;
+    }
+
 }
 
 int
@@ -632,5 +650,20 @@ mutex_destroy(int mutid){
 
 int
 mutex_unlock(int mutid){
-  return 0;
+
+  acquire(&(proc->mt.lock));
+  //if mutex is valid and this thread is holding it and the mutex is actually locked
+  if(proc->mt.mutex_arr[mutid].valid && proc->mt.mutex_arr[mutid].holder == proc->pid&&proc->mt.mutex_arr[mutid].status ==1){
+    //release
+    proc->mt.mutex_arr[mutid].status =0;
+    proc->mt.mutex_arr[mutid].holder = -1;
+    release(&(proc->mt.lock));
+    wakeup(&proc->mt.mutex_arr[mutid].lock);
+    return 0;
+  }
+  else{
+    //else don't allow thread to unlock it.
+    release(&(proc->mt.lock));
+    return -1;
+  }
 }

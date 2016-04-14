@@ -7,19 +7,15 @@
 #define NUM_THREADS 16
 #define TARGET_COUNT_PER_THREAD 100000
 
-int global = 0;
-int hola() {
-	global++;
-}
 void *thread(void *arg)
 {
 	int i;
 	int counter;
 
-	hola();
+
+
 	sleep(10);
 	printf(1, "thread %d: started...\n", *(int*)arg);
-
 	for (i=0; i<TARGET_COUNT_PER_THREAD; i++) {
 		sleep(0);
 		counter++;
@@ -32,7 +28,7 @@ void *thread(void *arg)
 int main(int argc, char **argv)
 {
 	int i;
-	//int passed = 1;
+	int passed = 1;
 
 	// Set up thread stuff
 	// Pids
@@ -64,15 +60,15 @@ int main(int argc, char **argv)
 
 	// Start all children
 	for (i=0; i<NUM_THREADS; i++) {
-		//printf(1,"lolz\n");
-		//printf(1, "GLOBAL %d\n", global);
+
 		pids[i] = clone(&thread, args[i], stacks[i]);
 		printf(1, "main: created thread with pid %d\n", pids[i]);
 	}
-	printf(1,"LOLZ");
+
+
 
 	// Wait for all children
-/*	for (i=0; i<NUM_THREADS; i++) {
+	for (i=0; i<NUM_THREADS; i++) {
 		void *joinstack;
 		void *retval;
 		int r;
