@@ -167,12 +167,12 @@ fork(void)
   pid = np->pid;
 
 
-  initlock(&((struct spinlock)np->mt.lock),np->name);
+  initlock(&(np->mt.lock),np->name);
 
   int j =0;
   for(;j<NUM_MUTEX;j++){
     char alphaName[2] = {(char) (j + 65), '\0'};
-    initlock(&((struct spinlock)np->mt.mutex_arr[j].lock),alphaName);
+    initlock(&(np->mt.mutex_arr[j].lock),alphaName);
   }
 
   // lock to force the compiler to emit the np->state write last.
@@ -598,16 +598,16 @@ void texit(void* retval)
 int
 mutex_init(void){
 
-  acquire(&((struct spinlock)(proc->mt.lock)));
+  acquire(&(proc->mt.lock));
   int i=0;
   for(;i<NUM_MUTEX; i++){
     if(!proc->mt.mutex_arr[i].valid){
       proc->mt.mutex_arr[i].valid = 1;
-      release(&((struct spinlock)(proc->mt.lock)));
+      release(&(proc->mt.lock));
       return i;
     }
   }
-  release(&((struct spinlock)(proc->mt.lock)));
+  release(&(proc->mt.lock));
   return -1;
 }
 
@@ -618,14 +618,14 @@ mutex_lock(int mutid){
 
 int
 mutex_destroy(int mutid){
-  acquire(&((struct spinlock)(proc->mt.lock)));
+  acquire(&(proc->mt.lock));
   if(mutid<0 || mutid>=NUM_MUTEX || proc->mt.mutex_arr[mutid].status){
-    release(&((struct spinlock)(proc->mt.lock)));
+    release(&(proc->mt.lock));
     return -1;
   }
 
   proc->mt.mutex_arr[mutid].valid = 0;
-  release(&((struct spinlock)(proc->mt.lock)));
+  release(&(proc->mt.lock));
 
   return 0;
 }

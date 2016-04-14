@@ -1,6 +1,9 @@
+#include "mutex.h"
+
 // Segments in proc->gdt.
 #define NSEGS     7
 #define NUM_MUTEX 32
+
 
 // Per-CPU state
 struct cpu {
@@ -65,18 +68,7 @@ struct _spinlock {
   uint pcs[10];      // The call stack (an array of program counters)// that locked the lock.
 };
 
-typedef struct{
 
-  struct _spinlock lock;
-  int valid;
-  int status;
-}mutex_t;
-
-typedef  struct{
-  mutex_t mutex_arr[32];
-  struct _spinlock lock;
-
-}mutex_table;
 
 
 

@@ -4,7 +4,7 @@
 #include "fs.h"
 #include "fcntl.h"
 
-#define NUM_THREADS 32
+#define NUM_THREADS 16
 #define TARGET_COUNT_PER_THREAD 100000
 
 int global = 0;
