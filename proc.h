@@ -83,6 +83,7 @@ struct proc {
   char name[16];               // Process name (debugging)
   int family;
   mutex_table mt;
+  mutex_table* ptr_mt;
   void* retval;
   void* stack;
 };
