@@ -85,6 +85,7 @@ struct proc {
   mutex_table mt;
   void* retval;
   void* stack;
+  int wemalloc;
 };
 
 // Process memory is laid out contiguously, low addresses first:

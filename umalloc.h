@@ -1,0 +1,2 @@
+void
+free(void *ap);

@@ -12,9 +12,9 @@ int pthread_create(pthread_t* thread, const pthread_attr_t* attr,
     char* stack = (char *) malloc(STACK_SIZE);
     if(stack == 0) // could not allocate stack
       return -1;
-
     thread->stack = stack;
     int tid = clone(start_routine, arg, stack);
+    wemalloc(tid);
     thread->pid = tid;
     return tid;
   }

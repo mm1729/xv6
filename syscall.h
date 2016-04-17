@@ -28,3 +28,4 @@
 #define SYS_mutex_lock 27
 #define SYS_mutex_destroy 28
 #define SYS_mutex_unlock 29
+#define SYS_wemalloc 30
