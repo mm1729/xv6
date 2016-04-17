@@ -206,12 +206,14 @@ fork(void)
 
 
 
+
   int j =0;
   initlock(&(np->mt.lock),proc->name);
   for(;j<NUM_MUTEX;j++){
     char alphaName[2] = {(char) (j + 65), '\0'};
     initlock(&(np->mt.mutex_arr[j].lock),alphaName);
   }
+  np->ptr_mt = &np->mt;
   np->family = pid;
   // lock to force the compiler to emit the np->state write last.
   acquire(&ptable.lock);
@@ -503,10 +505,6 @@ kill(int pid)
           if(t->state == SLEEPING){
             t->state=RUNNABLE;
           }
-          /*
-          if(t->wemalloc){
-            free(t->stack);
-          }*/
         }
       }
 
@@ -571,12 +569,7 @@ int clone(void*(*func) (void*), void* arg, void* stack)
 
   //share vm
   t->pgdir = proc->pgdir;
-  /*if((t->pgdir = copyuvm(proc->pgdir, proc->sz)) == 0){
-    kfree(t->kstack);
-    t->kstack = 0;
-    t->state = UNUSED;
-    return -1;
-  }*/
+
   t->sz = proc->sz;
   *t->tf = *proc->tf;
 
@@ -593,9 +586,10 @@ int clone(void*(*func) (void*), void* arg, void* stack)
   }
   t->family = proc->family;
 
-  t->stack = stack;
-  //free(t->stack); // copy stack
-  //cprintf("FREED!!\n");
+  t->ptr_mt = proc->ptr_mt;
+
+  t->stack = stack; // copy stack
+
   //make the stack
   t->tf->esp = (uint)(stack+STACK_SIZE);
   t->tf->ebp = t->tf->esp;
@@ -611,7 +605,7 @@ int clone(void*(*func) (void*), void* arg, void* stack)
 
   acquire(&ptable.lock);
   t->state = RUNNABLE;
-  //t->state = SLEEPING;
+
   release(&ptable.lock);
 
 
@@ -654,11 +648,7 @@ int join(int pid, void** stack, void**retval)
         // Found one.
         *stack = (void *)p->stack;
         *retval = (void *)p->retval;
-        /*
-        if(p->wemalloc){
-          cprintf("WE MALLOC FREE");
-          free(p->stack);
-        }*/
+
         p->stack = 0;
         p->retval = 0;
         kfree(p->kstack);
@@ -696,22 +686,22 @@ int
 mutex_init(void){
 
   //acquire(&(ptable.lock));
-  struct proc* parent = &ptable.proc[proc->family-1];
 
-  acquire(&(parent->mt.lock));
+
+  acquire(&(proc->ptr_mt->lock));
   int i=0;
   for(;i<NUM_MUTEX; i++){
-    if(!parent->mt.mutex_arr[i].valid){
+    if(!proc->ptr_mt->mutex_arr[i].valid){
 
-      parent->mt.mutex_arr[i].valid = 1;
-      parent->mt.mutex_arr[i].status =0;
-      parent->mt.mutex_arr[i].holder = -1;
-      release(&(parent->mt.lock));
+      proc->ptr_mt->mutex_arr[i].valid = 1;
+      proc->ptr_mt->mutex_arr[i].status =0;
+      proc->ptr_mt->mutex_arr[i].holder = -1;
+      release(&(proc->ptr_mt->lock));
       //release(&(ptable.lock));
       return i;
     }
   }
-  release(&(parent->mt.lock));
+  release(&(proc->ptr_mt->lock));
   //release(&(ptable.lock));
   return -1;
 }
@@ -719,41 +709,25 @@ mutex_init(void){
 int
 mutex_lock(int mutid){
 
-    struct proc* parent = &ptable.proc[proc->family-1];
-    //cprintf("ST%d\n",parent->mt.mutex_arr[mutid].status);
-    //pushcli();
-    //acquire(&(parent->mt.lock));
-    if(parent->mt.mutex_arr[mutid].valid){
-      //acquire(&parent->mt.lock);
 
-      //if(!parent->mt.mutex_arr[mutid].status){
-        //  cprintf("ATTEMPT\n");
-        //  acquire(&parent->mt.mutex_arr[mutid].lock);
-          //cprintf("ACQ\n");m
-      //}
-      //else{
-          cprintf("SLEEP\n");
-          //release(&parent->mt.lock);
-          acquire(&parent->mt.mutex_arr[mutid].lock);
-          while(parent->mt.mutex_arr[mutid].status){
-            //cprintf("SLEEPING\n");
-            //popcli();
-            sleep(&(parent->mt.mutex_arr[mutid]),&(parent->mt.mutex_arr[mutid].lock));
+    if(proc->ptr_mt->mutex_arr[mutid].valid){
+
+          acquire(&proc->ptr_mt->mutex_arr[mutid].lock);
+          while(proc->ptr_mt->mutex_arr[mutid].status){
+
+            sleep(&(proc->ptr_mt->mutex_arr[mutid]),&(proc->ptr_mt->mutex_arr[mutid].lock));
           }
-          //cprintf("MADE IT\n");
 
-//s      }
-        acquire(&parent->mt.lock);
-        parent->mt.mutex_arr[mutid].status =1;
-        parent->mt.mutex_arr[mutid].holder = proc->pid;
-        release(&(parent->mt.lock));
+        acquire(&proc->ptr_mt->lock);
+        proc->ptr_mt->mutex_arr[mutid].status =1;
+        proc->ptr_mt->mutex_arr[mutid].holder = proc->pid;
+        release(&(proc->ptr_mt->lock));
 
-      //popcli();
+
       return 0;
     }
     else{
-      //popcli();
-      //release(&(parent->mt.lock));
+	     release(&(proc->ptr_mt->lock));
       return -1;
     }
 
@@ -761,19 +735,16 @@ mutex_lock(int mutid){
 
 int
 mutex_destroy(int mutid){
-  cprintf("DESTROY\n");
-  struct proc* parent = &ptable.proc[proc->family-1];
 
-  //acquire(&(parent->mt.lock));
-  if(mutid<0 || mutid>=NUM_MUTEX || parent->mt.mutex_arr[mutid].status || !parent->mt.mutex_arr[mutid].valid){
+  if(mutid<0 || mutid>=NUM_MUTEX || proc->ptr_mt->mutex_arr[mutid].status || !proc->ptr_mt->mutex_arr[mutid].valid){
 
     return -1;
   }
-  acquire(&(parent->mt.lock));
-  parent->mt.mutex_arr[mutid].status =0;
-  parent->mt.mutex_arr[mutid].valid = 0;
-  parent->mt.mutex_arr[mutid].holder= -1;
-  release(&(parent->mt.lock));
+  acquire(&(proc->ptr_mt->lock));
+  proc->ptr_mt->mutex_arr[mutid].status =0;
+  proc->ptr_mt->mutex_arr[mutid].valid = 0;
+  proc->ptr_mt->mutex_arr[mutid].holder= -1;
+  release(&(proc->ptr_mt->lock));
 
 
   return 0;
@@ -781,28 +752,22 @@ mutex_destroy(int mutid){
 
 int
 mutex_unlock(int mutid){
+  acquire(&(proc->ptr_mt->lock));
+  if(proc->ptr_mt->mutex_arr[mutid].valid==1 && (proc->ptr_mt->mutex_arr[mutid].holder == proc->pid)&&(proc->ptr_mt->mutex_arr[mutid].status==1)){
+    release(&proc->ptr_mt->mutex_arr[mutid].lock);
 
-  struct proc* parent = &ptable.proc[proc->family-1];
-  cprintf("WWWWWWTTTFFF\n");
-  //acquire(&(parent->mt.lock));;
-  //if mutex is valid and this thread is holding it and the mutex is actually locked
-  if(parent->mt.mutex_arr[mutid].valid==1 && (parent->mt.mutex_arr[mutid].holder == proc->pid)&&(parent->mt.mutex_arr[mutid].status==1)){
-    release(&parent->mt.mutex_arr[mutid].lock);
-    acquire(&(parent->mt.lock));
-    parent->mt.mutex_arr[mutid].status =0;
-    parent->mt.mutex_arr[mutid].holder = -1;
-    release(&(parent->mt.lock));
+    proc->ptr_mt->mutex_arr[mutid].status =0;
+    proc->ptr_mt->mutex_arr[mutid].holder = -1;
+    release(&(proc->ptr_mt->lock));
 
-    wakeup(&parent->mt.mutex_arr[mutid]);
-    cprintf("RELEASED\n");
+    wakeup(&proc->ptr_mt->mutex_arr[mutid]);
 
 
-    //cprintf("RELEASED!\n");
 
     return 0;
   }
   else{
-    //release(&(parent->mt.lock));
+        release(&(proc->ptr_mt->lock));
     return -1;
   }
 }
