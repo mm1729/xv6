@@ -255,18 +255,28 @@ exit(void)
   // kill threads and clean them up
 
   struct proc *t;
+  //if it is not a thread,kill all threads under it
+  if(!proc->isthread){
+    for(t=ptable.proc; t<&ptable.proc[NPROC];t++){
+      break;
+      cprintf("LOLO\n");
 
-  for(t=ptable.proc; t<&ptable.proc[NPROC];t++){
-    if(t->family == proc->pid&&t->pid!=proc->pid){
-      t->killed=1;
-      if(t->state == SLEEPING){
-        t->state=RUNNABLE;
+      if(t->pid!=proc->pid&&t->family==proc->family){
+        t->killed=1;
+        if(t->state == SLEEPING){
+          t->state=RUNNABLE;
+        }
+
       }
-      /*
-      if(t->wemalloc){
+    }
+  }
+  //else if it is a thread, give all child threads to its parent
+  else{
+    for(t=ptable.proc; t<&ptable.proc[NPROC];t++){
+      if(t->pid!=proc->pid&&t->parent==proc->parent){
+        t->parent =  proc->parent;
+      }
 
-        free(t->stack);
-      }*/
     }
   }
 
@@ -284,6 +294,7 @@ exit(void)
 
   // Jump into the scheduler, never to return.
   proc->state = ZOMBIE;
+
   sched();
   panic("zombie exit");
 
@@ -499,11 +510,23 @@ kill(int pid)
     if(p->pid == pid){
       p->killed = 1;
       struct proc *t;
-      for(t=ptable.proc; t<&ptable.proc[NPROC];t++){
-        if(t->family == p->pid&& t->pid!=p->pid){
-          t->killed=1;
-          if(t->state == SLEEPING){
-            t->state=RUNNABLE;
+      //if it is not a thread,kill all threads under it
+      if(!proc->isthread){
+        for(t=ptable.proc; t<&ptable.proc[NPROC];t++){
+          if(t->pid!=proc->pid&&t->family==proc->family){
+            t->killed=1;
+            if(t->state == SLEEPING){
+              t->state=RUNNABLE;
+            }
+
+          }
+        }
+      }
+      //else if it is a thread, give all child threads to its parent
+      else{
+        for(t=ptable.proc; t<&ptable.proc[NPROC];t++){
+          if(t->pid!=proc->pid&&t->parent==proc->parent){
+            t->parent =  proc->parent;
           }
         }
       }
@@ -585,7 +608,7 @@ int clone(void*(*func) (void*), void* arg, void* stack)
     proc->family=proc->pid;
   }
   t->family = proc->family;
-
+  t->isthread = 1;
   t->ptr_mt = proc->ptr_mt;
 
   t->stack = stack; // copy stack
@@ -649,6 +672,13 @@ int join(int pid, void** stack, void**retval)
         *stack = (void *)p->stack;
         *retval = (void *)p->retval;
 
+        struct proc *t;
+        for(t=ptable.proc;t<&ptable.proc[NPROC];t++){
+          if(t->parent == p&&t->pid!=p->pid&&t->family==p->family){
+              t->parent = proc;
+          }
+        }
+
         p->stack = 0;
         p->retval = 0;
         kfree(p->kstack);
@@ -672,6 +702,7 @@ int join(int pid, void** stack, void**retval)
 
     // Waiting for children
     sleep(proc, &ptable.lock);
+
   }
 }
 void texit(void* retval)

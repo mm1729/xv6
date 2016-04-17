@@ -87,6 +87,7 @@ struct proc {
   void* retval;
   void* stack;
   int wemalloc;
+  int isthread;
 };
 
 // Process memory is laid out contiguously, low addresses first:
