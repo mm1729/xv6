@@ -176,6 +176,7 @@ UPROGS=\
 	_test_pthread\
 	_test_mutex\
 	_twothreads\
+	_multithread\
 	#_usertests
 
 fs.img: mkfs README $(UPROGS)

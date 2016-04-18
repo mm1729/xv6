@@ -7,28 +7,23 @@
 #include "pthread.h"
 
 
-#define NUM_THREADS 32
+#define NUM_THREADS 17
 #define TARGET_COUNT_PER_THREAD 100000
 
 
 pthread_t threads[NUM_THREADS];
 void *lol(void *arg){
-	//int i;
-	//int counter;
+	int i;
+	int counter;
 	sleep(10);
-	printf(1, "thread %d: started...\n", *(int*)arg);
+	printf(1,"RUNNNING!\n");
+	//printf(1, "thread %d: started...\n", *(int*)arg);
 
-
-	if(*(int*)arg==20){
-		printf(1,"Correct Argument\n");
-	}
-
-/*
 	for (i=0; i<TARGET_COUNT_PER_THREAD; i++) {
 		sleep(0);
 		counter++;
 		sleep(0);
-	}*/
+	}
 
 	//int * oop = malloc(4);
 	//*oop=1000;
@@ -47,11 +42,14 @@ void *thread(void *arg)
 	sleep(10);
 	printf(1, "thread %d: started...\n", *(int*)arg);
 
-		int* wtf = (int*) malloc(sizeof(int));
-		*wtf=20;
+		//int* wtf = (int*) malloc(sizeof(int));
+		//*wtf=20;
+		if(*(int*)arg == 0){
 		toJoin = j++;
-		pthread_create(&threads[toJoin], 0,lol, wtf);
-
+		printf(1,"I created %d, I am %d\n",toJoin,*(int*)arg);
+		pthread_create(&threads[16], 0,lol, 0);
+		}
+		//pthread_create(&threads[toJoin], 0,lol, 0);
 
 
 
@@ -60,12 +58,16 @@ void *thread(void *arg)
 		counter++;
 		sleep(0);
 	}
-	void *retval;
-//	printf(1,"before joined\n");
-	int ret = pthread_join(threads[toJoin], &retval);
-	printf(1,"ret%d\n",*(int*)retval);
+
+	//void *retval;
+	printf(1,"I joined %d, I am %d\n",toJoin,*(int*)arg);
+	if(*(int*)arg ==0){
+		void *retval;
+	int ret = pthread_join(threads[16], &retval);
 	printf(1,"joinstatus%d\n",ret);
-	//printf(1,"after joined\n");
+}
+	//printf(1,"ret%d\n",*(int*)retval);
+
 	pthread_exit(arg);
 }
 

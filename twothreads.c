@@ -15,12 +15,6 @@ void *lol(void *arg){
 	int counter;
 	sleep(10);
 	printf(1, "thread %d: started...\n", *(int*)arg);
-	/*if(*(int*)arg == 0){
-		int* wtf = (int*) malloc(sizeof(int));
-		*wtf=20;
-		pthread_create(&threads[1], 0,lol, wtf);
-		printf(1,"IDK\n");
-	}*/
 
 	if(*(int*)arg==20){
 		printf(1,"Correct Argument\n");
@@ -44,11 +38,11 @@ void *thread(void *arg)
 
 	sleep(10);
 	printf(1, "thread %d: started...\n", *(int*)arg);
-	if(*(int*)arg == 0){
-		int* wtf = (int*) malloc(sizeof(int));
-		*wtf=20;
-		pthread_create(&threads[1], 0,lol, wtf);
-	}
+
+
+	int* wtf = (int*) malloc(sizeof(int));
+	*wtf=20;
+	pthread_create(&threads[1], 0,lol, wtf);
 
 
 
@@ -58,10 +52,9 @@ void *thread(void *arg)
 		sleep(0);
 	}
 	void *retval;
-	printf(1,"before joined\n");
 	int lo= pthread_join(threads[1], &retval);
 	printf(1,"ret%d\n",lo);
-	printf(1,"after joined\n");
+	printf(1,"RET%d\n",*(int*)retval);
 	pthread_exit(arg);
 }
 
@@ -96,9 +89,10 @@ int main(int argc, char **argv)
 		printf(1, "main: created thread with pid %d\n", threads[i].pid);
 	}
 	void *retval;
-	pthread_join(threads[0], &retval);
+	//pthread_join(threads[14], &retval);
+	//sleep(10);
+	pthread_join(threads[0],&retval);
 	printf(1,"RE%d\n",*(int*)retval);
-  printf(1,"FUCCCCCKKK!!!\n");
 /*
 	// Wait for all children
 	for (i=0; i<NUM_THREADS; i++) {

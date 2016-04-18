@@ -274,7 +274,7 @@ wait(void)
         continue;
       havekids = 1;
       if(p->state == ZOMBIE){
-        //cprintf("ID%d\n",p->pid);
+
         // Found one.
         pid = p->pid;
         kfree(p->kstack);
@@ -543,25 +543,28 @@ int clone(void*(*func) (void*), void* arg, void* stack)
     return -1;
 
   //share vm
-  t->pgdir = proc->pgdir;
 
-  t->sz = proc->sz;
-  *t->tf = *proc->tf;
-
-  // Increment file reference count
-  for(i = 0; i < NOFILE; i++)
-    if(proc->ofile[i])
-      t->ofile[i] = filedup(proc->ofile[i]);
-  t->cwd = idup(proc->cwd);
 
   //set the parent
   t->parent = proc;
   if(proc->isthread){
     t->parent = proc->parent;
+    t->pgdir = proc->parent->pgdir;
   }
   else{
+    t->pgdir = proc->pgdir;
     t->parent = proc;
   }
+
+
+    t->sz = proc->sz;
+    *t->tf = *proc->tf;
+
+    // Increment file reference count
+  for(i = 0; i < NOFILE; i++)
+      if(proc->ofile[i])
+        t->ofile[i] = filedup(proc->ofile[i]);
+  t->cwd = idup(proc->cwd);
   t->isthread = 1;
   t->ptr_mt = proc->ptr_mt;
   t->stack = stack; // copy stack
@@ -599,7 +602,9 @@ int join(int pid, void** stack, void**retval)
     return -1;
 
   acquire(&ptable.lock);
+
   for(;;) {
+
     havekid = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
 
@@ -613,9 +618,12 @@ int join(int pid, void** stack, void**retval)
 
       havekid = 1;
       if(p->state == ZOMBIE) {
+
         // Found one.
         *stack = (void *)p->stack;
-        *retval = (void *)p->retval;
+        if(retval !=0){
+          *retval = (void *)p->retval;
+        }
         p->stack = 0;
         p->retval = 0;
         kfree(p->kstack);
@@ -633,17 +641,25 @@ int join(int pid, void** stack, void**retval)
 
     // thread requested doesn't exist
     if(!havekid || proc->killed) {
+
       release(&ptable.lock);
       return -1;
     }
 
     // Waiting for children
-    sleep(proc, &ptable.lock);
+    if(proc->isthread){
+      sleep(proc->parent,&ptable.lock);
+    }
+    else{
+      sleep(proc, &ptable.lock);
+    }
+
 
   }
 }
 void texit(void* retval)
 {
+  cprintf("EXXXXIITTT!!\n");
   proc->retval = retval;
   exit();
 }
