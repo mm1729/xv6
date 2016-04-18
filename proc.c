@@ -261,7 +261,7 @@ exit(void)
   if(!proc->isthread){
     for(t=ptable.proc; t<&ptable.proc[NPROC];t++){
       if(t->pid!=proc->pid&&t->family==proc->family&&t->state!=ZOMBIE){
-        cprintf("%d\n",t->pid);
+        //cprintf("KILLED%d\n",t->pid);
         t->stack = 0;
         t->retval = 0;
         kfree(t->kstack);
@@ -272,12 +272,12 @@ exit(void)
         t->parent = 0;
         t->name[0] = 0;
         t->killed = 0;
+        t->family = 0;
       }
     }
   }
 
   // Parent might be sleeping in wait().
-  cprintf("WAKEUP\n");
   wakeup1(proc->parent);
 
 
@@ -293,7 +293,6 @@ exit(void)
 
   // Jump into the scheduler, never to return.
   proc->state = ZOMBIE;
-  cprintf("LL\n");
   sched();
   panic("zombie exit");
 
@@ -317,6 +316,7 @@ wait(void)
         continue;
       havekids = 1;
       if(p->state == ZOMBIE){
+        //cprintf("ID%d\n",p->pid);
         // Found one.
         pid = p->pid;
         kfree(p->kstack);
@@ -514,7 +514,7 @@ kill(int pid)
       if(!proc->isthread){
         for(t=ptable.proc; t<&ptable.proc[NPROC];t++){
           if(t->pid!=p->pid&&t->family==p->family&&t->state!=ZOMBIE){
-            cprintf("%d\n",t->state);
+            //cprintf("%d\n",t->state);
             t->stack = 0;
             t->retval = 0;
             kfree(t->kstack);
@@ -626,12 +626,6 @@ int clone(void*(*func) (void*), void* arg, void* stack)
 
   char alphaName[2] = {(char) (t->pid % 26 + 65), '\0'};
   safestrcpy(t->name, alphaName, sizeof(alphaName));
-  if(pid==20){
-    cprintf("FUCK U!!\n");
-    cprintf("%x\n",t->tf->eip);
-    cprintf("%x\n",func);
-    cprintf("%s\n",t->name);
-  }
 
 
   acquire(&ptable.lock);
@@ -669,15 +663,25 @@ int join(int pid, void** stack, void**retval)
     havekid = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
 
-      if(p->parent != proc)
+      if(p->family != proc->family)
         continue;
       if(p->pid != pid) // not the requested thread
         continue;
 
-        cprintf("FFFFFFFF\n");
+      if(pid == p->family && p->family == p->pid) // cannot wait on a process
+        return -1;
+      //  cprintf("%d\n",p->state);
+      //  cprintf("%d\n",p->pid);
+      //  cprintf("%d\n",p->family);
+      if(p->state!=ZOMBIE &&p->state!=RUNNABLE&&p->state!=RUNNING){
+        //cprintf("HEEEEE\n");
+        return -1;
+      }
+
+      //  cprintf("FFFFFFFF\n");
       havekid = 1;
       if(p->state == ZOMBIE) {
-          cprintf("EEEE\n");
+        //  cprintf("EEEE\n");
         // Found one.
         *stack = (void *)p->stack;
         *retval = (void *)p->retval;
@@ -685,7 +689,7 @@ int join(int pid, void** stack, void**retval)
         struct proc *t;
         for(t=ptable.proc;t<&ptable.proc[NPROC];t++){
           if(t->parent == p&&t->pid!=p->pid){
-
+          //    cprintf("Looking for my kid!\n");
 
               t->parent = proc;
           }
@@ -702,7 +706,9 @@ int join(int pid, void** stack, void**retval)
         p->name[0] = 0;
         p->killed = 0;
         p->family = 0;
+
         release(&ptable.lock);
+      //  cprintf("Done! Return to user space\n");
         return 0;
       }
     }
@@ -715,7 +721,6 @@ int join(int pid, void** stack, void**retval)
 
     // Waiting for children
     sleep(proc, &ptable.lock);
-    cprintf("DDDDDDDDDDDDDDDDDDDd\n");
 
   }
 }
@@ -778,16 +783,16 @@ mutex_lock(int mutid){
             sleep(&(proc->ptr_mt->mutex_arr[mutid]),&(proc->ptr_mt->mutex_arr[mutid].lock));
           }
 
-        acquire(&proc->ptr_mt->lock);
+      //  acquire(&proc->ptr_mt->lock);
         proc->ptr_mt->mutex_arr[mutid].status =1;
         proc->ptr_mt->mutex_arr[mutid].holder = proc->pid;
-        release(&(proc->ptr_mt->lock));
+      //  release(&(proc->ptr_mt->lock));
 
-
+      release(&proc->ptr_mt->mutex_arr[mutid].lock);
       return 0;
     }
     else{
-	     release(&(proc->ptr_mt->lock));
+
       return -1;
     }
 
@@ -812,13 +817,13 @@ mutex_destroy(int mutid){
 
 int
 mutex_unlock(int mutid){
-  acquire(&(proc->ptr_mt->lock));
+//  acquire(&(proc->ptr_mt->lock));
   if(proc->ptr_mt->mutex_arr[mutid].valid==1 && (proc->ptr_mt->mutex_arr[mutid].holder == proc->pid)&&(proc->ptr_mt->mutex_arr[mutid].status==1)){
-    release(&proc->ptr_mt->mutex_arr[mutid].lock);
+    acquire(&proc->ptr_mt->mutex_arr[mutid].lock);
 
     proc->ptr_mt->mutex_arr[mutid].status =0;
     proc->ptr_mt->mutex_arr[mutid].holder = -1;
-    release(&(proc->ptr_mt->lock));
+    release(&(proc->ptr_mt->mutex_arr[mutid].lock));
 
     wakeup(&proc->ptr_mt->mutex_arr[mutid]);
 

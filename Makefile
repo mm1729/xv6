@@ -169,13 +169,14 @@ UPROGS=\
 	_rm\
 	_sh\
 	_stressfs\
-	_usertests\
 	_wc\
 	_zombie\
 	_shutdown\
 	_test_clone\
 	_test_pthread\
 	_test_mutex\
+	_twothreads\
+	#_usertests
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
