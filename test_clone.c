@@ -65,7 +65,7 @@ int main(int argc, char **argv)
 		printf(1, "main: created thread with pid %d\n", pids[i]);
 	}
 
-
+	exit();
 
 	// Wait for all children
 	for (i=0; i<NUM_THREADS; i++) {

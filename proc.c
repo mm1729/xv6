@@ -190,6 +190,9 @@ fork(void)
 
   np->sz = proc->sz;
   np->parent = proc;
+  np->ptr_mt = &np->mt;
+  np->family = np->pid;
+
   *np->tf = *proc->tf;
 
   // Clear %eax so that fork returns 0 in the child.
@@ -213,8 +216,7 @@ fork(void)
     char alphaName[2] = {(char) (j + 65), '\0'};
     initlock(&(np->mt.mutex_arr[j].lock),alphaName);
   }
-  np->ptr_mt = &np->mt;
-  np->family = pid;
+
   // lock to force the compiler to emit the np->state write last.
   acquire(&ptable.lock);
   np->state = RUNNABLE;
@@ -258,25 +260,19 @@ exit(void)
   //if it is not a thread,kill all threads under it
   if(!proc->isthread){
     for(t=ptable.proc; t<&ptable.proc[NPROC];t++){
-      break;
-      cprintf("LOLO\n");
-
-      if(t->pid!=proc->pid&&t->family==proc->family){
-        t->killed=1;
-        if(t->state == SLEEPING){
-          t->state=RUNNABLE;
-        }
-
+      if(t->pid!=proc->pid&&t->family==proc->family&&t->state!=ZOMBIE){
+        cprintf("%d\n",t->pid);
+        t->stack = 0;
+        t->retval = 0;
+        kfree(t->kstack);
+        t->kstack = 0;
+        t->pgdir = 0; // just make pointer NULL
+        t->state = UNUSED;
+        t->pid = 0;
+        t->parent = 0;
+        t->name[0] = 0;
+        t->killed = 0;
       }
-    }
-  }
-  //else if it is a thread, give all child threads to its parent
-  else{
-    for(t=ptable.proc; t<&ptable.proc[NPROC];t++){
-      if(t->pid!=proc->pid&&t->parent==proc->parent){
-        t->parent =  proc->parent;
-      }
-
     }
   }
 
@@ -509,27 +505,27 @@ kill(int pid)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->pid == pid){
       p->killed = 1;
+
       struct proc *t;
       //if it is not a thread,kill all threads under it
       if(!proc->isthread){
         for(t=ptable.proc; t<&ptable.proc[NPROC];t++){
-          if(t->pid!=proc->pid&&t->family==proc->family){
-            t->killed=1;
-            if(t->state == SLEEPING){
-              t->state=RUNNABLE;
-            }
+          if(t->pid!=p->pid&&t->family==p->family&&t->state!=ZOMBIE){
+            cprintf("%d\n",t->state);
+            t->stack = 0;
+            t->retval = 0;
+            kfree(t->kstack);
+            t->kstack = 0;
+            t->pgdir = 0; // just make pointer NULL
+            t->state = UNUSED;
+            t->pid = 0;
+            t->parent = 0;
+            t->name[0] = 0;
+            t->killed = 0;
+          }
+        }
+      }
 
-          }
-        }
-      }
-      //else if it is a thread, give all child threads to its parent
-      else{
-        for(t=ptable.proc; t<&ptable.proc[NPROC];t++){
-          if(t->pid!=proc->pid&&t->parent==proc->parent){
-            t->parent =  proc->parent;
-          }
-        }
-      }
 
 
       // Wake process from sleep if necessary.
@@ -613,18 +609,27 @@ int clone(void*(*func) (void*), void* arg, void* stack)
 
   t->stack = stack; // copy stack
 
+
   //make the stack
   t->tf->esp = (uint)(stack+STACK_SIZE);
   t->tf->ebp = t->tf->esp;
   t->tf->esp -= sizeof(uint);
   *((uint*)(t->tf->esp)) = (uint)arg;
   t->tf->esp -= sizeof(uint);
-  *((uint*)(t->tf->esp)) = 0xFFFFFFFF;
+  *((uint*)(t->tf->esp)) = 0xFFFFFDFF;
   t->tf->eip = (uint)func;
+
   pid = t->pid;
 
   char alphaName[2] = {(char) (t->pid % 26 + 65), '\0'};
   safestrcpy(t->name, alphaName, sizeof(alphaName));
+  if(pid==20){
+    cprintf("FUCK U!!\n");
+    cprintf("%x\n",t->tf->eip);
+    cprintf("%x\n",func);
+    cprintf("%s\n",t->name);
+  }
+
 
   acquire(&ptable.lock);
   t->state = RUNNABLE;
@@ -660,24 +665,28 @@ int join(int pid, void** stack, void**retval)
   for(;;) {
     havekid = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+
       if(p->parent != proc)
         continue;
       if(p->pid != pid) // not the requested thread
         continue;
 
-
+        cprintf("FFFFFFFF\n");
       havekid = 1;
       if(p->state == ZOMBIE) {
+          cprintf("EEEE\n");
         // Found one.
         *stack = (void *)p->stack;
         *retval = (void *)p->retval;
-        /*
+        //pass thread's children to thread who joined on it
         struct proc *t;
         for(t=ptable.proc;t<&ptable.proc[NPROC];t++){
-          if(t->parent == p&&t->pid!=p->pid&&t->family==p->family){
+          if(t->parent == p&&t->pid!=p->pid){
+
+
               t->parent = proc;
           }
-        }*/
+        }
 
         p->stack = 0;
         p->retval = 0;
@@ -689,6 +698,7 @@ int join(int pid, void** stack, void**retval)
         p->parent = 0;
         p->name[0] = 0;
         p->killed = 0;
+        p->family = 0;
         release(&ptable.lock);
         return 0;
       }
@@ -702,13 +712,29 @@ int join(int pid, void** stack, void**retval)
 
     // Waiting for children
     sleep(proc, &ptable.lock);
+    cprintf("DDDDDDDDDDDDDDDDDDDd\n");
 
   }
 }
 void texit(void* retval)
 {
-
-  proc->retval = retval;
+  //if texit is called by a thread, pass its children to the first non-zombie parent
+  if(proc->isthread){
+    struct proc *t;
+    for(t=ptable.proc;t<&ptable.proc[NPROC];t++){
+      if(t->parent == proc&&t->pid!=proc->pid){
+        cprintf("NONE\n");
+          struct proc *p;
+          p = proc->parent;
+          while(p->state!=ZOMBIE){
+            p = p->parent;
+          }
+          t->parent = p;
+      }
+    }
+      proc->retval = retval;
+  }
+  ///else if called by process act as exit
   exit();
 }
 

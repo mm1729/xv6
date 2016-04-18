@@ -5,16 +5,28 @@
 #include "fcntl.h"
 #include "pthread.h"
 
-#define NUM_THREADS 16
+#define NUM_THREADS 17
 #define TARGET_COUNT_PER_THREAD 100000
 
-void *thread(void *arg)
-{
+
+pthread_t threads[NUM_THREADS];
+void *lol(void *arg){
 	int i;
 	int counter;
-
+	printf(1,"???????????\n");
 	sleep(10);
 	printf(1, "thread %d: started...\n", *(int*)arg);
+	if(*(int*)arg == 0){
+		int* wtf = (int*) malloc(sizeof(int));
+		*wtf=20;
+		pthread_create(&threads[1], 0,lol, wtf);
+		printf(1,"IDK\n");
+	}
+
+	if(*(int*)arg==20){
+		printf(1,"FUCK!!!\n");
+	}
+
 
 	for (i=0; i<TARGET_COUNT_PER_THREAD; i++) {
 		sleep(0);
@@ -25,20 +37,48 @@ void *thread(void *arg)
 	pthread_exit(arg);
 }
 
+
+void *thread(void *arg)
+{
+	int i;
+	int counter;
+
+	sleep(10);
+	printf(1, "thread %d: started...\n", *(int*)arg);
+	if(*(int*)arg == 0){
+		int* wtf = (int*) malloc(sizeof(int));
+		*wtf=20;
+		pthread_create(&threads[16], 0,lol, wtf);
+		printf(1,"IDK\n");
+	}
+
+
+
+	for (i=0; i<TARGET_COUNT_PER_THREAD; i++) {
+		sleep(0);
+		counter++;
+		sleep(0);
+	}
+	void *retval;
+	pthread_join(threads[1], &retval);
+
+	pthread_exit(arg);
+}
+
 int main(int argc, char **argv)
 {
 	int i;
-	int passed = 1;
+	//int passed = 1;
 
 	// Set up thread stuff
 	// Threads
-	pthread_t threads[NUM_THREADS];
+
 	// Args
 	int *args[NUM_THREADS];
 
 	// Allocate stacks and args and make sure we have them all
 	// Bail if something fails
-	for (i=0; i<NUM_THREADS; i++) {
+	for (i=0; i<1; i++) {
 		args[i] = (int*) malloc(sizeof(int));
 		if (!args[i]) {
 			printf(1, "main: could not get memory (for arg) for thread %d, exiting...\n");
@@ -51,14 +91,16 @@ int main(int argc, char **argv)
 	printf(1, "main: running with %d threads...\n", NUM_THREADS);
 
 	// Start all children
-	for (i=0; i<NUM_THREADS; i++) {
+	for (i=0; i<1; i++) {
 		pthread_create(&threads[i], 0, thread, args[i]);
 		printf(1, "main: created thread with pid %d\n", threads[i].pid);
 	}
-
+	void *retval;
+	pthread_join(threads[0], &retval);
+/*
 	// Wait for all children
 	for (i=0; i<NUM_THREADS; i++) {
-		void *retval;
+
 		int r;
 		r = pthread_join(threads[i], &retval);
 		if (r < 0) {
@@ -81,6 +123,7 @@ int main(int argc, char **argv)
 	for (i=0; i<NUM_THREADS; i++) {
 		free(args[i]);
 	}
+	*/
 
 	// Exit
 	exit();
