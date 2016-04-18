@@ -16,12 +16,12 @@ void *lol(void *arg){
 	printf(1,"???????????\n");
 	sleep(10);
 	printf(1, "thread %d: started...\n", *(int*)arg);
-	if(*(int*)arg == 0){
+	/*if(*(int*)arg == 0){
 		int* wtf = (int*) malloc(sizeof(int));
 		*wtf=20;
 		pthread_create(&threads[1], 0,lol, wtf);
 		printf(1,"IDK\n");
-	}
+	}*/
 
 	if(*(int*)arg==20){
 		printf(1,"FUCK!!!\n");
@@ -33,7 +33,7 @@ void *lol(void *arg){
 		counter++;
 		sleep(0);
 	}
-
+	printf(1,"Exiting\n");
 	pthread_exit(arg);
 }
 
@@ -60,8 +60,9 @@ void *thread(void *arg)
 		sleep(0);
 	}
 	void *retval;
+	printf(1,"before joined\n");
 	pthread_join(threads[1], &retval);
-
+	printf(1,"after joined\n");
 	pthread_exit(arg);
 }
 
