@@ -671,13 +671,13 @@ int join(int pid, void** stack, void**retval)
         // Found one.
         *stack = (void *)p->stack;
         *retval = (void *)p->retval;
-
+        /*
         struct proc *t;
         for(t=ptable.proc;t<&ptable.proc[NPROC];t++){
           if(t->parent == p&&t->pid!=p->pid&&t->family==p->family){
               t->parent = proc;
           }
-        }
+        }*/
 
         p->stack = 0;
         p->retval = 0;
