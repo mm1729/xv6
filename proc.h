@@ -81,12 +81,10 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
-  int family;
   mutex_table mt;
   mutex_table* ptr_mt;
   void* retval;
   void* stack;
-  int wemalloc;
   int isthread;
 };
 

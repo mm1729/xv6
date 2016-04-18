@@ -186,13 +186,3 @@ sys_mutex_unlock(void){
 
   return mutex_unlock(mutid);
 }
-int
-sys_wemalloc(void){
-  int tid;
-  if(argint(0, &tid) < 0)
-    return -1;
-
-  wemalloc(tid);
-  return 0;
-
-}

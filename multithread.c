@@ -1,28 +1,72 @@
+
 #include "types.h"
 #include "stat.h"
 #include "user.h"
 #include "fs.h"
 #include "fcntl.h"
+#include "pthread.h"
 
-#define NUM_THREADS 16
+
+#define NUM_THREADS 32
 #define TARGET_COUNT_PER_THREAD 100000
 
+
+pthread_t threads[NUM_THREADS];
+void *lol(void *arg){
+	//int i;
+	//int counter;
+	sleep(10);
+	printf(1, "thread %d: started...\n", *(int*)arg);
+
+
+	if(*(int*)arg==20){
+		printf(1,"Correct Argument\n");
+	}
+
+/*
+	for (i=0; i<TARGET_COUNT_PER_THREAD; i++) {
+		sleep(0);
+		counter++;
+		sleep(0);
+	}*/
+
+	//int * oop = malloc(4);
+	//*oop=1000;
+	//printf(1,"Exiting\n");
+	//printf(1,"%d\n",*(int*)arg);
+	pthread_exit(arg);
+}
+
+int j= 16;
 void *thread(void *arg)
 {
 	int i;
 	int counter;
-
-
+	int toJoin;
 
 	sleep(10);
 	printf(1, "thread %d: started...\n", *(int*)arg);
+
+		int* wtf = (int*) malloc(sizeof(int));
+		*wtf=20;
+		toJoin = j++;
+		pthread_create(&threads[toJoin], 0,lol, wtf);
+
+
+
+
 	for (i=0; i<TARGET_COUNT_PER_THREAD; i++) {
 		sleep(0);
 		counter++;
 		sleep(0);
 	}
-
-	texit(arg);
+	void *retval;
+//	printf(1,"before joined\n");
+	int ret = pthread_join(threads[toJoin], &retval);
+	printf(1,"ret%d\n",*(int*)retval);
+	printf(1,"joinstatus%d\n",ret);
+	//printf(1,"after joined\n");
+	pthread_exit(arg);
 }
 
 int main(int argc, char **argv)
@@ -31,22 +75,14 @@ int main(int argc, char **argv)
 	int passed = 1;
 
 	// Set up thread stuff
-	// Pids
-	int pids[NUM_THREADS];
-	// Stacks
-	void *stacks[NUM_THREADS];
+	// Threads
+
 	// Args
 	int *args[NUM_THREADS];
 
 	// Allocate stacks and args and make sure we have them all
 	// Bail if something fails
-	for (i=0; i<NUM_THREADS; i++) {
-		stacks[i] = (void*) malloc(4096);
-		if (!stacks[i]) {
-			printf(1, "main: could not get stack for thread %d, exiting...\n");
-			exit();
-		}
-
+	for (i=0; i<16; i++) {
 		args[i] = (int*) malloc(sizeof(int));
 		if (!args[i]) {
 			printf(1, "main: could not get memory (for arg) for thread %d, exiting...\n");
@@ -59,20 +95,16 @@ int main(int argc, char **argv)
 	printf(1, "main: running with %d threads...\n", NUM_THREADS);
 
 	// Start all children
-	for (i=0; i<NUM_THREADS; i++) {
-
-		pids[i] = clone(&thread, args[i], stacks[i]);
-		printf(1, "main: created thread with pid %d\n", pids[i]);
+	for (i=0; i<16; i++) {
+		pthread_create(&threads[i], 0, thread, args[i]);
+		printf(1, "main: created thread with pid %d\n", threads[i].pid);
 	}
 
-	//exit();
-
 	// Wait for all children
-	for (i=0; i<NUM_THREADS; i++) {
-		void *joinstack;
-		void *retval;
+	for (i=0; i<16; i++) {
+		void * retval;
 		int r;
-		r = join(pids[i], &joinstack, &retval);
+		r = pthread_join(threads[i], &retval);
 		if (r < 0) {
 			passed = 0;
 		}
@@ -90,12 +122,11 @@ int main(int argc, char **argv)
 	}
 
 	// Clean up memory
-	for (i=0; i<NUM_THREADS; i++) {
-		free(stacks[i]);
+	for (i=0; i< 16; i++) {
 		free(args[i]);
 	}
 
-	// Exit*/
-	exit();
 
+	// Exit
+	exit();
 }

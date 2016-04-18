@@ -125,7 +125,7 @@ int             mutex_init(void);
 int             mutex_lock(int mutid);
 int             mutex_destroy(int mutid);
 int             mutex_unlock(int mutid);
-void             wemalloc(int);
+
 
 
 

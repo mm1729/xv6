@@ -25,7 +25,6 @@ int sleep(int);
 int uptime(void);
 int halt(void);
 int clone(void*(*) (void*), void*, void*);
-int wemalloc(int);
 int join(int, void**, void**);
 void texit(void*);
 int mutex_init(void);

@@ -47,7 +47,7 @@ void *thread(void *arg)
 	if(*(int*)arg == 0){
 		int* wtf = (int*) malloc(sizeof(int));
 		*wtf=20;
-		pthread_create(&threads[16], 0,lol, wtf);
+		pthread_create(&threads[1], 0,lol, wtf);
 	}
 
 
