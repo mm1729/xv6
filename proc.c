@@ -578,7 +578,6 @@ int clone(void*(*func) (void*), void* arg, void* stack)
   t->tf->esp -= sizeof(uint);
   *((uint*)(t->tf->esp)) = 0xFFFFFFFF;
   t->tf->eip = (uint)func;
-
   pid = t->pid;
 
   char alphaName[2] = {(char) (t->pid % 26 + 65), '\0'};
@@ -598,8 +597,10 @@ int join(int pid, void** stack, void**retval)
   struct proc *p;
   int havekid;
 
-  if(pid <= 0 || proc->pid == pid) // invalid pid
+  if(pid <= 0 || proc->pid == pid){ // invalid pid
+    cprintf("1\n");
     return -1;
+  }
 
   acquire(&ptable.lock);
 
@@ -610,19 +611,24 @@ int join(int pid, void** stack, void**retval)
 
       if(p->pid != pid) // not the requested thread
         continue;
-      if(!p->isthread) // cannot wait on a process
+      if(!p->isthread){ // cannot wait on a process
+        cprintf("2\n");
         return -1;
+      }
       if(p->state==UNUSED || p->state == EMBRYO){
+        cprintf("3\n");
         return -1;
       }
 
       havekid = 1;
+      cprintf("had kid\n");
       if(p->state == ZOMBIE) {
-
+        procdump();
         // Found one.
         *stack = (void *)p->stack;
         if(retval !=0){
           *retval = (void *)p->retval;
+          cprintf("ret%d\n",*(int*)p->retval);
         }
         p->stack = 0;
         p->retval = 0;
@@ -641,7 +647,10 @@ int join(int pid, void** stack, void**retval)
 
     // thread requested doesn't exist
     if(!havekid || proc->killed) {
-
+      procdump();
+      cprintf("pid%d\n",pid);
+      cprintf("%d\n",havekid);
+      cprintf("killed%d\n",proc->killed);
       release(&ptable.lock);
       return -1;
     }
@@ -659,7 +668,6 @@ int join(int pid, void** stack, void**retval)
 }
 void texit(void* retval)
 {
-  cprintf("EXXXXIITTT!!\n");
   proc->retval = retval;
   exit();
 }
