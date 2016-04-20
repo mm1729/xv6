@@ -222,6 +222,7 @@ exit(void)
   if(!proc->isthread){
     for(t=ptable.proc; t<&ptable.proc[NPROC];t++){
       if(t->parent==proc){
+        cprintf("Killing %d\n", t->pid);
         t->stack = 0;
         t->retval = 0;
         kfree(t->kstack);
@@ -232,8 +233,11 @@ exit(void)
         t->parent = 0;
         t->name[0] = 0;
         t->killed = 0;
+        //release(&ptable.lock);
+        //kill(t->pid);
       }
     }
+    procdump();
   }
   // Parent might be sleeping in wait().
   wakeup1(proc->parent);
@@ -598,7 +602,7 @@ int join(int pid, void** stack, void**retval)
   int havekid;
 
   if(pid <= 0 || proc->pid == pid){ // invalid pid
-    cprintf("1\n");
+    //cprintf("1\n");
     return -1;
   }
 
@@ -612,23 +616,23 @@ int join(int pid, void** stack, void**retval)
       if(p->pid != pid) // not the requested thread
         continue;
       if(!p->isthread){ // cannot wait on a process
-        cprintf("2\n");
+        //cprintf("2\n");
         return -1;
       }
       if(p->state==UNUSED || p->state == EMBRYO){
-        cprintf("3\n");
+        //cprintf("3\n");
         return -1;
       }
 
       havekid = 1;
-      cprintf("had kid\n");
+      //cprintf("had kid\n");
       if(p->state == ZOMBIE) {
-        procdump();
+        //procdump();
         // Found one.
         *stack = (void *)p->stack;
         if(retval !=0){
           *retval = (void *)p->retval;
-          cprintf("ret%d\n",*(int*)p->retval);
+          //cprintf("ret%d\n",*(int*)p->retval);
         }
         p->stack = 0;
         p->retval = 0;
@@ -647,10 +651,10 @@ int join(int pid, void** stack, void**retval)
 
     // thread requested doesn't exist
     if(!havekid || proc->killed) {
-      procdump();
+      /*procdump();
       cprintf("pid%d\n",pid);
       cprintf("%d\n",havekid);
-      cprintf("killed%d\n",proc->killed);
+      cprintf("killed%d\n",proc->killed);*/
       release(&ptable.lock);
       return -1;
     }

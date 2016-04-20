@@ -32,13 +32,14 @@ int pthread_join(pthread_t thread, void** retval)
 }
 void pthread_exit(void* retval)
 {
+  printf(1, "Exiting %d\n", *(int *) retval);
   texit(retval);
 }
 
 int
 pthread_mutex_init(pthread_mutex_t* mutex, const pthread_mutexattr_t* attr){
     int mutid = mutex_init();
-    printf(1,"%d",mutid);
+    //printf(1,"%d",mutid);
     if((mutex->mutid = mutid)>=0){
       return 0;
     }
