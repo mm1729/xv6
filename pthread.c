@@ -32,7 +32,7 @@ int pthread_join(pthread_t thread, void** retval)
 }
 void pthread_exit(void* retval)
 {
-  printf(1, "Exiting %d\n", *(int *) retval);
+  //printf(1, "Exiting %d\n", *(int *) retval);
   texit(retval);
 }
 

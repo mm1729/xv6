@@ -185,6 +185,21 @@ fork(void)
 
   return pid;
 }
+int killNoLock(int pid) {
+  struct proc *p;
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->pid == pid){
+      p->killed = 1;
+      // Wake process from sleep if necessary.
+      if(p->state == SLEEPING)
+        p->state = RUNNABLE;
+      release(&ptable.lock);
+      return 0;
+    }
+  }
+  return -1;
+}
+
 
 // Exit the current process.  Does not return.
 // An exited process remains in the zombie state
@@ -221,8 +236,9 @@ exit(void)
   //if it is not a thread,kill all threads under it
   if(!proc->isthread){
     for(t=ptable.proc; t<&ptable.proc[NPROC];t++){
+      //acquire(&ptable.lock);
       if(t->parent==proc){
-        cprintf("Killing %d\n", t->pid);
+        /*cprintf("Killing %d\n", t->pid);
         t->stack = 0;
         t->retval = 0;
         kfree(t->kstack);
@@ -232,12 +248,12 @@ exit(void)
         t->pid = 0;
         t->parent = 0;
         t->name[0] = 0;
-        t->killed = 0;
+        t->killed = 0;*/
         //release(&ptable.lock);
-        //kill(t->pid);
+        killNoLock(t->pid);
       }
     }
-    procdump();
+    //procdump();
   }
   // Parent might be sleeping in wait().
   wakeup1(proc->parent);
@@ -470,24 +486,6 @@ kill(int pid)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->pid == pid){
       p->killed = 1;
-      struct proc *t;
-      //if it is not a thread,kill all threads under it
-      if(!p->isthread){
-        for(t=ptable.proc; t<&ptable.proc[NPROC];t++){
-          if(t->parent==p){
-            t->stack = 0;
-            t->retval = 0;
-            kfree(t->kstack);
-            t->kstack = 0;
-            t->pgdir = 0; // just make pointer NULL
-            t->state = UNUSED;
-            t->pid = 0;
-            t->parent = 0;
-            t->name[0] = 0;
-            t->killed = 0;
-          }
-        }
-      }
       // Wake process from sleep if necessary.
       if(p->state == SLEEPING)
         p->state = RUNNABLE;

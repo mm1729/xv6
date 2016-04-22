@@ -19,24 +19,16 @@ void *thread(void *arg)
 	sleep(10);
 	printf(1, "thread %d: started...\n", *(int*)arg);
 
-	//pthread_mutex_lock(&mutex);
 	for (i=0; i<TARGET_COUNT_PER_THREAD; i++) {
-
 		pthread_mutex_lock(&mutex);
-		//printf(1,"IN\n");
 
 		counter = g_counter;
-		//printf(1,"?\n");
 		sleep(0);
 		counter++;
 		sleep(0);
 		g_counter = counter;
-		//printf(1, "WEEEEEEEEEEE! %d\n", i);
-		//if(i == 100)
-			//break;
-		pthread_mutex_unlock(&mutex);
-		//printf(1,"OUT\n");
 
+		pthread_mutex_unlock(&mutex);
 	}
 
 	pthread_exit(arg);
